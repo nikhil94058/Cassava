@@ -6,45 +6,129 @@
     <title>Cassava Leaf Detection</title>
     <style>
       body {
-        font-family: Arial, sans-serif;
+        font-family: "Arial", sans-serif;
+        background-color: #f0fdf4; /* Light green background for farm theme */
+        color: #2f4f4f; /* Darker green for text */
         text-align: center;
-        padding: 20px;
+        margin: 0;
+        padding: 0;
+        min-height: 100vh;
       }
+
       .container {
         max-width: 600px;
         margin: auto;
         padding: 20px;
-        border: 1px solid #ccc;
-        border-radius: 10px;
-        box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1);
-        position: relative;
+        border: 2px solid #4caf50; /* Green border for farm theme */
+        border-radius: 15px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        background-color: white;
+        text-align: center;
+        animation: fadeIn 1s ease-out;
       }
+
+      /* Add fade-in effect */
+      @keyframes fadeIn {
+        0% {
+          opacity: 0;
+        }
+        100% {
+          opacity: 1;
+        }
+      }
+
+      h2 {
+        font-size: 2rem;
+        color: #388e3c;
+      }
+
+      input[type="file"] {
+        padding: 10px;
+        font-size: 1rem;
+        border-radius: 5px;
+        border: 1px solid #388e3c;
+        background-color: #e8f5e9;
+        cursor: pointer;
+        transition: background-color 0.3s;
+      }
+
+      input[type="file"]:hover {
+        background-color: #c8e6c9;
+      }
+
       #imageContainer {
         position: relative;
         display: none;
-        border: 6px solid green;
+        border: 6px solid #4caf50; /* Green border around image */
         padding: 10px;
+        margin-top: 20px;
+        border-radius: 10px;
       }
+
       img {
         max-width: 100%;
         height: auto;
-        position: relative;
+        border-radius: 10px;
       }
+
       .scanner {
         position: absolute;
         top: 0;
         left: 50%;
         width: 6px;
         height: 100%;
-        background: rgba(0, 255, 0, 0.8);
+        background: rgba(76, 175, 80, 0.8);
         animation: scan 2s infinite alternate ease-in-out;
       }
+
       @keyframes scan {
         0% {
           left: 30%;
         }
         100% {
           left: 70%;
+        }
+      }
+
+      button {
+        background-color: #4caf50;
+        color: white;
+        padding: 12px 24px;
+        border: none;
+        border-radius: 5px;
+        font-size: 1.1rem;
+        cursor: pointer;
+        transition: background-color 0.3s;
+        margin-top: 20px;
+      }
+
+      button:hover {
+        background-color: #388e3c;
+      }
+
+      #result {
+        margin-top: 20px;
+        font-size: 1.2rem;
+        color: #388e3c;
+      }
+
+      /* For smaller devices */
+      @media (max-width: 600px) {
+        .container {
+          width: 90%;
+          padding: 15px;
+        }
+
+        h2 {
+          font-size: 1.8rem;
+        }
+
+        input[type="file"] {
+          font-size: 0.9rem;
+        }
+
+        button {
+          font-size: 1rem;
         }
       }
     </style>
@@ -86,13 +170,33 @@
         }
 
         document.getElementById("imageContainer").style.border =
-          "6px solid green";
+          "6px solid #4caf50";
         document.getElementById("scanner").style.display = "block";
+        scanningActive = true;
+
+        const scanner = document.getElementById("scanner");
+        let scanDuration = 3000;
+
+        // Randomly move the scanner
+        let randomizeScanner = setInterval(() => {
+          if (scanningActive) {
+            let randomLeft = Math.floor(Math.random() * 60) + 10;
+            let randomTop = Math.floor(Math.random() * 40) + 10;
+            scanner.style.left = randomLeft + "%";
+            scanner.style.top = randomTop + "%";
+          }
+        }, 100);
+
+        setTimeout(() => {
+          clearInterval(randomizeScanner);
+          scanner.style.animation = "scan 2s infinite alternate ease-in-out";
+        }, scanDuration);
 
         const formData = new FormData();
         formData.append("image", fileInput.files[0]);
 
-        fetch("/analyze", {
+        fetch("http://127.0.0.1:5000/upload", {
+          // Make sure the URL matches your Flask server
           method: "POST",
           body: formData,
         })
@@ -103,10 +207,12 @@
               "6px solid transparent";
             document.getElementById("result").innerText =
               "Result: " + data.prediction;
+            scanningActive = false;
           })
           .catch((error) => {
             console.error("Error:", error);
-            alert("Error ! analyzing the image.");
+            alert("Error analyzing the image.");
+            scanningActive = false;
           });
       }
     </script>
