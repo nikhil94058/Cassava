@@ -162,58 +162,108 @@
           }
         });
 
-      function analyzeImage() {
+      async function analyzeImage() {
+        // Get file input and image container elements
         const fileInput = document.getElementById("imageUpload");
+        const imageContainer = document.getElementById("imageContainer");
+        const scannerElement = document.getElementById("scanner");
+        const resultElement = document.getElementById("result");
+
+        // Validate file upload
         if (fileInput.files.length === 0) {
           alert("Please upload an image first.");
           return;
         }
 
-        document.getElementById("imageContainer").style.border =
-          "6px solid #4caf50";
-        document.getElementById("scanner").style.display = "block";
-        scanningActive = true;
+        // Reset previous state
+        resultElement.innerText = "";
+        resultElement.className = ""; // Clear any previous result classes
 
-        const scanner = document.getElementById("scanner");
-        let scanDuration = 3000;
+        // Visual feedback for scanning
+        imageContainer.style.border = "6px solid #4caf50";
+        scannerElement.style.display = "block";
+        let scanningActive = true;
 
-        // Randomly move the scanner
-        let randomizeScanner = setInterval(() => {
+        // Create scanning animation
+        const randomizeScanner = setInterval(() => {
           if (scanningActive) {
             let randomLeft = Math.floor(Math.random() * 60) + 10;
             let randomTop = Math.floor(Math.random() * 40) + 10;
-            scanner.style.left = randomLeft + "%";
-            scanner.style.top = randomTop + "%";
+            scannerElement.style.left = `${randomLeft}%`;
+            scannerElement.style.top = `${randomTop}%`;
           }
         }, 100);
 
+        // Stop random movement and start steady scanning animation
+        const scanDuration = 3000;
         setTimeout(() => {
           clearInterval(randomizeScanner);
-          scanner.style.animation = "scan 2s infinite alternate ease-in-out";
+          scannerElement.style.animation =
+            "scan 2s infinite alternate ease-in-out";
         }, scanDuration);
 
-        const formData = new FormData();
-        formData.append("image", fileInput.files[0]);
+        try {
+          // Prepare form data
+          const formData = new FormData();
+          formData.append("image", fileInput.files[0]);
 
-        fetch("http://127.0.0.1:5000/upload", {
-          // Make sure the URL matches your Flask server
-          method: "POST",
-          body: formData,
-        })
-          .then((response) => response.json())
-          .then((data) => {
-            document.getElementById("scanner").style.display = "none";
-            document.getElementById("imageContainer").style.border =
-              "6px solid transparent";
-            document.getElementById("result").innerText =
-              "Result: " + data.prediction;
-            scanningActive = false;
-          })
-          .catch((error) => {
-            console.error("Error:", error);
-            alert("Error analyzing the image.");
-            scanningActive = false;
+          // Show loading state
+          resultElement.innerText = "Analyzing image...";
+          resultElement.className = "loading";
+
+          // Send image to backend
+          const response = await fetch("http://127.0.0.1:5000/predict", {
+            method: "POST",
+            body: formData,
           });
+
+          // Check if response is OK
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+
+          // Parse response
+          const data = await response.json();
+
+          // Handle potential error in response
+          if (data.error) {
+            throw new Error(data.error);
+          }
+
+          // Stop scanning and update results
+          scanningActive = false;
+          scannerElement.style.display = "none";
+          imageContainer.style.border = "6px solid transparent";
+
+          // Display result with styling
+          resultElement.innerText = `Detected: ${data.prediction}`;
+          resultElement.className = "success";
+
+          // Optional: Add confidence if available
+          if (data.confidence) {
+            resultElement.innerText += `\nConfidence: ${data.confidence}%`;
+          }
+        } catch (error) {
+          // Comprehensive error handling
+          console.error("Error analyzing the image:", error);
+
+          // Stop scanning
+          scanningActive = false;
+          scannerElement.style.display = "none";
+          imageContainer.style.border = "6px solid transparent";
+
+          // User-friendly error message
+          resultElement.innerText =
+            "Failed to analyze image. Please try again.";
+          resultElement.className = "error";
+
+          // Optional: More specific error handling
+          if (error.message.includes("network")) {
+            alert("Network error. Please check your connection.");
+          } else {
+            alert(`Error: ${error.message}`);
+          }
+        }
       }
     </script>
   </body>
